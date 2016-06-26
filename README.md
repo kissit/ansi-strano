@@ -21,23 +21,23 @@ Obviously, this isn't nearly a fully featured tool.  The goal here was to provid
 ### Installation & Configuration
 * Clone/download this repo
 * Make adjustments to the options in group_vars/all.  The following options are available
-** hosts - This is the ansible option for which hosts should be targetted for deployment.  There are various ways this can be configured (static inventory, dynamic inventory & groups, etc).
-** repo_url - This needs to be set to the Github repo that contains the application being deployed
-** keep_releases - This is the number of past releases to keep available for rollback in the deployment structure on each system being deployed.
-** deploy_base - This is the base directory where the application will be deployed to.  Within this directory will be a directory structure similar to how Capistrano performs deployments with a symlink to the "current" active release.
-** shared_path - This is the base directory where things like log directories and config files will be placed and symlinked to.  You probably don't need to change this.
-** current_path - This is the name of the "current" active release symlink.  You probably don't need to change this.
-** repo_path - This is the directory where the actual repo is cloned/updated.  You probably don't need to change this.
-** file_owner - This is the user that will be set to own the deployed files.
-** file_group - This is the group that will be set to own the deployed files.
-** restart_services - This is a list of services to be restarted at the end of the deployment.  Leave this blank for none.
-** config_files - This is a hash of configuration files to be "templated" as part of the deployment process.  In this example, we're deploying a CodeIgniter application and using database.php and config.php.  The variables that are used to populate the various options in the files are set in the standard Ansible fashion in group_vars/all, though in a real world scenario these would most likely be set differently in different group_vars files based on environment, etc.
+ * hosts - This is the ansible option for which hosts should be targetted for deployment.  There are various ways this can be configured (static inventory, dynamic inventory & groups, etc).
+ * repo_url - This needs to be set to the Github repo that contains the application being deployed
+ * keep_releases - This is the number of past releases to keep available for rollback in the deployment structure on each system being deployed.
+ * deploy_base - This is the base directory where the application will be deployed to.  Within this directory will be a directory structure similar to how Capistrano performs deployments with a symlink to the "current" active release.
+ * shared_path - This is the base directory where things like log directories and config files will be placed and symlinked to.  You probably don't need to change this.
+ * current_path - This is the name of the "current" active release symlink.  You probably don't need to change this.
+ * repo_path - This is the directory where the actual repo is cloned/updated.  You probably don't need to change this.
+ * file_owner - This is the user that will be set to own the deployed files.
+ * file_group - This is the group that will be set to own the deployed files.
+ * restart_services - This is a list of services to be restarted at the end of the deployment.  Leave this blank for none.
+ * config_files - This is a hash of configuration files to be "templated" as part of the deployment process.  In this example, we're deploying a CodeIgniter application and using database.php and config.php.  The variables that are used to populate the various options in the files are set in the standard Ansible fashion in group_vars/all, though in a real world scenario these would most likely be set differently in different group_vars files based on environment, etc.
 ```
 config_files:
   - { src: "templates/database.php", dest: "{{ shared_path }}/database.php" }
   - { src: "templates/config.php", dest: "{{ shared_path }}/config.php" }
 ```
-** symlinks - This is a hash of files/directories to be symlinked as part of the release process.  In most cases the sources will exist in the "shared" directory.  This is so that things like log directories can stay consistent across releases, and also so that the configration files can live outside of the release directory.  In this example we're symlinking our config files from the previous step as well as the logs and cache directories.
+ * symlinks - This is a hash of files/directories to be symlinked as part of the release process.  In most cases the sources will exist in the "shared" directory.  This is so that things like log directories can stay consistent across releases, and also so that the configration files can live outside of the release directory.  In this example we're symlinking our config files from the previous step as well as the logs and cache directories.
 ```
 symlinks:
   - { src: "{{ shared_path }}/database.php", dest: "{{ release_path }}/application/config/database.php", create_src: False}
