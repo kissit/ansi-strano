@@ -1,0 +1,28 @@
+---
+## These vars control the behavior of the deploy/rollback processes.  See the Readme for details.
+repo_url: git@github.com:kissit/kiss-ci-base.git
+keep_releases: 6
+deploy_base: /var/www/kiss-ci-base
+shared_path: "{{ deploy_base }}/shared"
+current_path: "{{ deploy_base }}/current"
+repo_path: "{{ deploy_base }}/repo"
+file_owner: root
+file_group: wheel
+restart_services:
+  - apache24
+config_files:
+  - { src: "templates/database.php", dest: "{{ shared_path }}/database.php" }
+  - { src: "templates/config.php", dest: "{{ shared_path }}/config.php" }
+symlinks:
+  - { src: "{{ shared_path }}/database.php", dest: "{{ release_path }}/application/config/database.php", create_src: False}
+  - { src: "{{ shared_path }}/config.php", dest: "{{ release_path }}/application/config/config.php", create_src: False}
+  - { src: "{{ shared_path }}/logs", dest: "{{ release_path }}/application/logs", create_src: True}
+  - { src: "{{ shared_path }}/cache", dest: "{{ release_path }}/application/cache", create_src: True}
+
+## These vars are used in the templates for the config files.  In real world scenarios these may be split out into multiple group_vars files
+## in order to set different values based on environment being targetted.
+ci_base_url: http://kiss-ci-base
+ci_db_host: localhost
+ci_db_name: xxxxxxxxx
+ci_db_user: xxxxxxxxx
+ci_db_pass: xxxxxxxxx

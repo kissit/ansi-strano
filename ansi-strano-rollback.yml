@@ -1,0 +1,27 @@
+---
+- name: "Ansi-strano-rollback - Capistrano like rollback process using Ansible"
+
+  ## This is the host(s) to target.  Can be a group, individual host, etc.
+  hosts: localhost
+
+  gather_facts: False
+  sudo: yes
+
+  vars_prompt:
+    - name: "revertto"
+      private: no
+      prompt: "Please enter the revision name to revert to.  This is the dated folder in the releases directory."
+      default: 'x'
+
+  tasks:
+    - name: "Validate the release name first"
+      stat: path="{{ deploy_base }}/releases/{{ revertto }}"
+      register: check_revertto
+
+    - name: "Revert the symlinks to the specified version"
+      file: state=link path="{{ current_path }}" src="{{ deploy_base }}/releases/{{ revertto }}"
+      when: check_revertto.stat.exists
+
+    - name: "Restart services as configured"
+      service: name="{{ item }}" state=restarted
+      with_items: restart_services

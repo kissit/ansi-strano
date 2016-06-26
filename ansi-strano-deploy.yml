@@ -1,0 +1,98 @@
+##
+## ansi-strano-deploy.yml - A Capistrano like deployment playbook using Ansible
+##
+## Copyright (C) 2016 KISS IT Consulting <http://www.kissitconsulting.com/>
+
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions
+## are met:
+## 
+## 1. Redistributions of source code must retain the above copyright
+##    notice, this list of conditions and the following disclaimer.
+## 2. Redistributions in binary form must reproduce the above
+##    copyright notice, this list of conditions and the following
+##    disclaimer in the documentation and/or other materials
+##    provided with the distribution.
+## 
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL ANY
+## CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+## EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+## PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+## PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+## OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+## NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+## SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+##
+## Requirements
+## 1. Ansible 2.x installed and configured with the applicable inventory
+## 2. A github repo containing the application to be deployed
+## 3. Templates of any configuration files needed for the application
+##
+## The "hosts" section below is where you can target a single host, multiple hosts, or groups of hosts based
+## on your inventory.  In our case in the real world this is almost always one or more AWS/Rackspace groups
+## populated by the dynamic inventory scripts.
+##
+## The "vars" section below contains various pieces of information that can be customized as needed.
+## At a minimum you'll need to change the repo_url, deploy_base, config_files, and symlinks vars.
+
+---
+- name: "Ansi-strano-deploy - Capistrano like deployment process using Ansible"
+
+  ## This is the host(s) to target.  Can be a group, individual host, etc.
+  hosts: localhost
+
+  gather_facts: False
+  sudo: yes
+
+  tasks:
+    - name: Generate release timestamp
+      local_action: command date +%Y%m%d%H%M%S
+      run_once: true
+      register: timestamp
+
+    - set_fact: "release_path='{{ deploy_base }}/releases/{{ timestamp.stdout }}'"
+    - set_fact: branch=master
+      when: branch is not defined
+
+    - name: "Ensure our release related directories exist"
+      file: state=directory path="{{ item }}" owner="{{ file_owner }}" group="{{ file_group }}"
+      with_items:
+        - "{{ deploy_base }}"
+        - "{{ release_path }}"
+        - "{{ shared_path }}"
+        - "{{ repo_path }}"
+
+    - name: "Update source git repo"
+      git: repo="{{ repo_url }}" dest="{{ repo_path }}" accept_hostkey=yes
+
+    - name: "Copy the cached git copy"
+      shell: "cp -r {{ repo_path }}/. {{ release_path }}"
+
+    - name: "git checkout our desired branch"
+      shell: chdir="{{ release_path }}" git checkout "{{ branch }}"
+
+    - name: "Update our config files if desired"
+      template: src="{{ item.src }}" dest="{{ item.dest }}" owner="{{ file_owner }}" group="{{ file_group }}"
+      with_items: config_files
+
+    - name: "Ensure our various symlink sources exist"
+      file: state=directory path="{{ item.src }}" owner="{{ file_owner }}" group="{{ file_group }}" mode=0777
+      with_items: symlinks
+      when: item.create_src == True
+
+    - name: "Create our symlinks"
+      shell: "rm -rf {{ item.dest }} && ln -s {{ item.src }} {{ item.dest }}"
+      with_items: symlinks
+
+    - name: "Activate the release"
+      file: state=link path="{{ current_path }}" src="{{ release_path }}"
+
+    - name: "Restart services as configured"
+      service: name="{{ item }}" state=restarted
+      with_items: restart_services
+
+    - name: "Cleanup old releases"
+      shell: "ls -dt {{ deploy_base }}/releases/* | tail -n +{{ keep_releases|string }} | xargs rm -rf"
