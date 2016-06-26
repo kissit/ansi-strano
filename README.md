@@ -32,19 +32,19 @@ Obviously, this isn't nearly a fully featured tool.  The goal here was to provid
  * file_group - This is the group that will be set to own the deployed files.
  * restart_services - This is a list of services to be restarted at the end of the deployment.  Leave this blank for none.
  * config_files - This is a hash of configuration files to be "templated" as part of the deployment process.  In this example, we're deploying a CodeIgniter application and using database.php and config.php.  The variables that are used to populate the various options in the files are set in the standard Ansible fashion in group_vars/all, though in a real world scenario these would most likely be set differently in different group_vars files based on environment, etc.
-```
+ ```
 config_files:
   - { src: "templates/database.php", dest: "{{ shared_path }}/database.php" }
   - { src: "templates/config.php", dest: "{{ shared_path }}/config.php" }
-```
+ ```
  * symlinks - This is a hash of files/directories to be symlinked as part of the release process.  In most cases the sources will exist in the "shared" directory.  This is so that things like log directories can stay consistent across releases, and also so that the configration files can live outside of the release directory.  In this example we're symlinking our config files from the previous step as well as the logs and cache directories.
-```
+ ```
 symlinks:
   - { src: "{{ shared_path }}/database.php", dest: "{{ release_path }}/application/config/database.php", create_src: False}
   - { src: "{{ shared_path }}/config.php", dest: "{{ release_path }}/application/config/config.php", create_src: False}
   - { src: "{{ shared_path }}/logs", dest: "{{ release_path }}/application/logs", create_src: True}
   - { src: "{{ shared_path }}/cache", dest: "{{ release_path }}/application/cache", create_src: True}
-```
+ ```
 
 ### Usage
 * Basic usage assuming your hosts option is set to include all desired hosts:
